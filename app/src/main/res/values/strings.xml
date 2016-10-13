@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AndroidImageSelector</string>
+    <string name="storageNoMounted">当前存储卡不可用</string>
+    <string name="noScanImage">没有扫描到图片</string>
+</resources>

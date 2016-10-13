@@ -1,0 +1,35 @@
+目标
+    1.尽可能的去避免内存溢出
+        a.根据图片的显示大小去压缩图片
+        b.使用缓存对图片进行管理(LruCache)
+    2.用户操作UI必须充分的流畅
+        a.getView()中尽可能不做耗时操作(异步加载+回调显示)
+    3.用户预期显示的图片尽可能的快
+        a.图片加载策略(Last in First Out ,First in First Out) -->LIFO
+
+实现思路
+    ImageLoader
+    getView(){
+
+            url --> Bitmap
+
+            url -->LruCache查找
+                        -->找到返回
+                        -->找不到
+                              url --> Task --> TaskQueue并发送通知提醒后台轮询线程
+    }
+
+    Task -- >run(){
+
+         根据url加载图片
+             1.获取图片显示的大小
+             2.使用Options对图片进行压缩
+             3.加载图片并且放入Lrucache
+    }
+
+
+
+    后台轮询线程
+        Taskqueue --> Task --> 线程池去执行
+        new Thread(){run(){while(true){}}}.start();(未采用)
+        Handler+Looper+Message+MessageQueue(采用这种方式)
