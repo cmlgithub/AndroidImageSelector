@@ -14,16 +14,11 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.cml.androidimageselector.base.BaseRecyViewHolder;
-import com.cml.androidimageselector.base.SimpleRecyAdapter;
 import com.cml.androidimageselector.bean.FloderBean;
-import com.cml.androidimageselector.utils.ImageLoader;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -33,8 +28,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class GalleryActivity extends AppCompatActivity implements View.OnClickListener {
+public class GalleryActivity extends AppCompatActivity implements View.OnClickListener ,GalleryAdapter.SelectOrCancleSelectImage{
 
+    private int canSelectMaxImageCout = 9;
     private RecyclerView mRecyclerView;
     private TextView mId_choose_dir;
     private TextView mId_total_count;
@@ -65,13 +61,13 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
             if(msg.what == DATA_LOADED){
                 progressDialog.dismiss();
                 data2View();
-
                 initPopWindow();
             }
         }
     };
     private View lineView;
     private ListPopupWindow listPopupWindow;
+    private TextView complete;
 
     private void data2View() {
         if(mCurrentDir == null){
@@ -80,78 +76,51 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
         }
 
         mImgs = Arrays.asList(mCurrentDir.list());
-
-
-        mRecyclerView.setLayoutManager(new GridLayoutManager(this,3));
-
-        mRecyclerView.setAdapter(new SimpleRecyAdapter<String>(GalleryActivity.this,mImgs,R.layout.item_gallery) {
+        mImgs = Arrays.asList(mCurrentDir.list(new FilenameFilter() {
             @Override
-            public void bindData(BaseRecyViewHolder viewHolder,  String path, int position) {
-                ImageView imageView = viewHolder.getImageView(R.id.id_item_image);
-                final ImageButton imageButton = (ImageButton) viewHolder.getView(R.id.id_item_select);
-                imageView.setImageResource(R.mipmap.pictures_no);
-                path = mCurrentDir.getAbsolutePath() + "/" + path;
-                ImageLoader.newInstance().loadImage(path,imageView);
-
-//                Glide.with(GalleryActivity.this).
-//                        load(path).
-//                        asBitmap(). //强制处理为bitmap
-//                        placeholder(R.mipmap.pictures_no).//加载中显示的图片
-//                        error(R.mipmap.pictures_no).//加载失败时显示的图片
-//                        into(imageView);//显示到目标View中
-
-                imageView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Toast.makeText(GalleryActivity.this, "点击了图片", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-                final String  key = path;
-
-                imageButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Object tag = imageButton.getTag();
-                        if(tag == null){//未选中
-                            imageButton.setImageResource(R.mipmap.pictures_selected);
-                            imageButton.setTag("");
-                            mSelectImagePath.add(key);
-                        }else{
-                            imageButton.setImageResource(R.mipmap.picture_unselected);
-                            imageButton.setTag(null);
-                            mSelectImagePath.remove(key);
-                        }
-                    }
-                });
-
-
-                if(mSelectImagePath.size() > 0 ){
-                    if(mSelectImagePath.contains(key)){
-                        imageButton.setImageResource(R.mipmap.pictures_selected);
-                        imageButton.setTag("");
-                    }
-                }
+            public boolean accept(File dir, String filename) {
+                if(filename.endsWith(".jpg")||filename.endsWith(".jpeg")||filename.endsWith(".png"))
+                    return true;
+                return false;
             }
-        });
-
-
-        mId_choose_dir.setText(mCurrentDir.getAbsolutePath());
+        }));
+        GalleryAdapter galleryAdapter = new GalleryAdapter(this, mImgs, mCurrentDir, mSelectImagePath,canSelectMaxImageCout);
+        galleryAdapter.setSelectOrCancleSelectImage(this);
+        mRecyclerView.setAdapter(galleryAdapter);
+        String[] split = mCurrentDir.getAbsolutePath().split("/");
+        mId_choose_dir.setText(split[split.length-1]);
         mId_total_count.setText(mCurrentDir.list().length+"");
 
+
+        if(listPopupWindow != null){
+            listPopupWindow.dismiss();
+        }
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
-
-
         findView();
-
-
         initDatas();
+    }
 
+    private void findView() {
+        lineView = findViewById(R.id.line);
+        mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView_gallery);
+        mId_choose_dir = (TextView) findViewById(R.id.id_choose_dir);
+        mId_total_count = (TextView) findViewById(R.id.id_total_count);
+        complete = (TextView) findViewById(R.id.complete);
+        mId_choose_dir.setOnClickListener(this);
+        complete.setOnClickListener(this);
+        mRecyclerView.setLayoutManager(new GridLayoutManager(this,3));
+    }
+
+    /**
+     * 扫描手机中的所有图片
+     */
+    private void initDatas() {
+        scanPhoneImage();
     }
 
     private void initPopWindow() {
@@ -162,93 +131,27 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                 lightOn();
             }
         });
-
         listPopupWindow.setonDirSelectedListener(new ListPopupWindow.onDirSelectedListener() {
             @Override
             public void onSeleted(FloderBean floderBean) {
                 mCurrentDir = new File(floderBean.getDir());
-                mImgs = Arrays.asList(mCurrentDir.list(new FilenameFilter() {
-                    @Override
-                    public boolean accept(File dir, String filename) {
-                        if(filename.endsWith(".jpg")||filename.endsWith(".jpeg")||filename.endsWith(".png"))
-                            return true;
-                        return false;
-                    }
-                }));
-
-                mRecyclerView.setAdapter(new SimpleRecyAdapter<String>(GalleryActivity.this,mImgs,R.layout.item_gallery) {
-                    @Override
-                    public void bindData(BaseRecyViewHolder viewHolder, String path, int position) {
-                        ImageView imageView = viewHolder.getImageView(R.id.id_item_image);
-                        final ImageButton imageButton = (ImageButton) viewHolder.getView(R.id.id_item_select);
-                        imageView.setImageResource(R.mipmap.pictures_no);
-                        imageButton.setImageResource(R.mipmap.picture_unselected);
-                        imageButton.setTag(null);
-                        path = mCurrentDir.getAbsolutePath() + "/" + path;
-                        ImageLoader.newInstance().loadImage(path,imageView);
-
-
-                        imageView.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                Toast.makeText(GalleryActivity.this, "点击了图片", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-
-                        final String  key = path;
-
-                        imageButton.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                Object tag = imageButton.getTag();
-                                if(tag == null){//未选中
-                                    imageButton.setImageResource(R.mipmap.pictures_selected);
-                                    imageButton.setTag("");
-                                    mSelectImagePath.add(key);
-                                }else{
-                                    imageButton.setImageResource(R.mipmap.picture_unselected);
-                                    imageButton.setTag(null);
-                                    mSelectImagePath.remove(key);
-                                }
-                            }
-                        });
-
-
-                        if(mSelectImagePath.size() > 0 ){
-                            if(mSelectImagePath.contains(key)){
-                                imageButton.setImageResource(R.mipmap.pictures_selected);
-                                imageButton.setTag("");
-                            }
-                        }
-
-                    }
-                });
-
-
-
-                mId_choose_dir.setText(mCurrentDir.getAbsolutePath());
-                mId_total_count.setText(mCurrentDir.list().length+"");
-
-                listPopupWindow.dismiss();
+                data2View();
             }
         });
     }
 
-    private void lightOn() {
-        WindowManager.LayoutParams lp = getWindow().getAttributes();
-        lp.alpha = 1.0f;
-        getWindow().setAttributes(lp);
-    }
 
     /**
-     * 扫描手机中的所有图片
+     * 扫描手机中的图片
      */
-    private void initDatas() {
+    private void scanPhoneImage() {
 
+        //判断sd卡是否挂载
         if(!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)){
             Toast.makeText(this, storageNoMountedToastString, Toast.LENGTH_SHORT).show();
             return;
         }
+
 
         progressDialog = ProgressDialog.show(this,null,"loading...");
 
@@ -266,20 +169,18 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                         new String[] { "image/jpeg", "image/png" },
                         MediaStore.Images.Media.DATE_MODIFIED);
                 //防止重复遍历
-                Set<String> mDirPaths = new HashSet<String>();
-
-
+                Set<String> mDirPaths = new HashSet<String>();//Camera路径
                 while (cursor.moveToNext()){
                     //当前图片的路径
-                    String path = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA));
+                    String path = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA));//150451
 
-                    File parentFile = new File(path).getParentFile();
+                    File parentFile = new File(path).getParentFile();//Camera
 
                     if(parentFile == null){
                         continue;
                     }
 
-                    String dirPath = parentFile.getAbsolutePath();
+                    String dirPath = parentFile.getAbsolutePath();//Camera absolutePath
 
                     FloderBean floderBean = null;
 
@@ -321,16 +222,9 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                 mHandler.sendEmptyMessage(0x110);
             }
         }.start();
-
     }
 
-    private void findView() {
-        lineView = findViewById(R.id.line);
-        mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView_gallery);
-        mId_choose_dir = (TextView) findViewById(R.id.id_choose_dir);
-        mId_total_count = (TextView) findViewById(R.id.id_total_count);
-        mId_choose_dir.setOnClickListener(this);
-    }
+
 
     @Override
     public void onClick(View v) {
@@ -339,12 +233,32 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                 listPopupWindow.showAsDropDown(mId_choose_dir,0,0);
                 lightOff();
                 break;
+            case R.id.complete:
+                Toast.makeText(this, "complete", Toast.LENGTH_SHORT).show();
+                break;
         }
     }
+
+    private void lightOn() {
+        WindowManager.LayoutParams lp = getWindow().getAttributes();
+        lp.alpha = 1.0f;
+        getWindow().setAttributes(lp);
+    }
+
 
     private void lightOff() {
         WindowManager.LayoutParams lp = getWindow().getAttributes();
         lp.alpha = 0.3f;
         getWindow().setAttributes(lp);
+    }
+
+    @Override
+    public void selectOrCancleSelectImage() {
+        if(mSelectImagePath.size()>0){
+            complete.setEnabled(true);
+            complete.setText("完成("+mSelectImagePath.size()+")");
+        }else{
+            complete.setEnabled(false);
+        }
     }
 }
