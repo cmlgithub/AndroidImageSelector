@@ -2,6 +2,7 @@ package com.cml.androidimageselector;
 
 import android.app.ProgressDialog;
 import android.content.ContentResolver;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.PopupWindow;
@@ -25,6 +27,7 @@ import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -68,6 +71,8 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
     private View lineView;
     private ListPopupWindow listPopupWindow;
     private TextView complete;
+    private Toolbar mToolbar;
+
 
     private void data2View() {
         if(mCurrentDir == null){
@@ -106,6 +111,7 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
     }
 
     private void findView() {
+        mToolbar = (Toolbar) findViewById(R.id.gralleryToolbar);
         lineView = findViewById(R.id.line);
         mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView_gallery);
         mId_choose_dir = (TextView) findViewById(R.id.id_choose_dir);
@@ -113,7 +119,14 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
         complete = (TextView) findViewById(R.id.complete);
         mId_choose_dir.setOnClickListener(this);
         complete.setOnClickListener(this);
+
         mRecyclerView.setLayoutManager(new GridLayoutManager(this,3));
+        mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
     }
 
     /**
@@ -234,7 +247,15 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                 lightOff();
                 break;
             case R.id.complete:
-                Toast.makeText(this, "complete", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent();
+                ArrayList<String> mDatas = new ArrayList<>();
+                Iterator<String> it = mSelectImagePath.iterator();
+                while (it.hasNext()) {
+                    String str = it.next();
+                    mDatas.add(str);
+                }
+                intent.putStringArrayListExtra("data",mDatas);
+                setResult(2,intent);
                 break;
         }
     }

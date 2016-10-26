@@ -6,6 +6,7 @@
     android:layout_height="match_parent">
 
     <android.support.v7.widget.Toolbar
+        android:id="@+id/gralleryToolbar"
         android:background="@color/colorPrimaryDark"
         android:layout_width="match_parent"
         app:title="选择图片"
