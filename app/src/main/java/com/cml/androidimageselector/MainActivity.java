@@ -10,11 +10,15 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.cml.imageselector.ImageSelectorActivity;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+
+import static com.cml.imageselector.ImageSelectorActivity.RESULT_DATA;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -40,7 +44,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()){
             case R.id.photograph:
-                camare();
+//                camare();
+                Intent intent = new Intent(this, ImageSelectorActivity.class);
+                intent.putExtra(ImageSelectorActivity.MODE,ImageSelectorActivity.SEPARATE_MODE);
+                startActivityForResult(intent,100);
                 break;
             case R.id.gallery:
                 startActivityForResult(new Intent(this,GalleryActivity.class),1);
@@ -75,6 +82,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             data.putExtra("data",imagePath);
             setResult(RESULT_OK,data);
             finish();
+        }
+
+        if(resultCode == RESULT_OK && requestCode == 100){
+            String stringExtra = data.getStringExtra(RESULT_DATA);
+            Toast.makeText(this, stringExtra, Toast.LENGTH_SHORT).show();
         }
 
     }
