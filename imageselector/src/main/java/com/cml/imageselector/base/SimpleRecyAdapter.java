@@ -1,4 +1,4 @@
-package com.cml.androidimageselector.base;
+package com.cml.imageselector.base;
 
 import android.content.Context;
 

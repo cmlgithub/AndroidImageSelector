@@ -1,4 +1,4 @@
-package com.cml.androidimageselector.utils;
+package com.cml.imageselector.utils;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -76,7 +76,7 @@ public class ImageLoader {
         if(mImageLoader == null){
             synchronized (ImageLoader.class){
                 if(mImageLoader == null){
-                    mImageLoader = new ImageLoader(DEFAULT_THREDD_COUNT,Type.LIFO);
+                    mImageLoader = new ImageLoader(DEFAULT_THREDD_COUNT, Type.LIFO);
                 }
             }
         }

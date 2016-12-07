@@ -1,4 +1,4 @@
-package com.cml.androidimageselector.bean;
+package com.cml.imageselector.bean;
 
 /**
  * 作者：陈明亮 on 2016/10/13 14:05
